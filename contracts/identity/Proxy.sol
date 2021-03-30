@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.16;
 import "./MultiOwned.sol";
 
 contract Proxy is MultiOwned {
@@ -14,17 +14,18 @@ contract Proxy is MultiOwned {
   // The user's Id contract
   address public id = address(0);
 
-  function Proxy(address firstOwner) MultiOwned(firstOwner) public {}
+  constructor(address firstOwner) MultiOwned(firstOwner) public {}
 
-  function () public payable { Received(msg.sender, msg.value); }
+  function () external payable { emit Received(msg.sender, msg.value); }
 
-  function forward(address destination, uint value, bytes data) public onlyOwner {
-    require(destination.call.value(value)(data));
-    Forwarded(destination, value, data);
+  function forward(address destination, uint value, bytes memory data) public onlyOwner {
+    (bool success, bytes memory returnData) = destination.call.value(value)(data);
+    require(success, string(returnData));
+    emit Forwarded(destination, value, data);
   }
 
   function setId(address newId) public onlyOwner {
-    Upgraded(id, newId);
+    emit Upgraded(id, newId);
     id = newId;
   }
   

@@ -1,27 +1,26 @@
 package com.everis.blockchain.honduras.util;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.http.HttpHeaders;
-import org.apache.http.ParseException;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
 import org.web3j.crypto.Hash;
- 
+import org.web3j.protocol.exceptions.TransactionException;
+import org.web3j.utils.Numeric;
+import org.web3j.utils.Strings;
 
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 public class Utils {
+	public static  final String VERIFY_JWT_ERROR = "VERIFY_JWT_ERROR";
+	public static  final String AUDIENCE_JWT_ERROR = "AUDIENCE_JWT_ERROR";
+	public static  final String EXPIRED_JWT_ERROR = "EXPIRED_JWT_ERROR";
+	
+
+	public static  final String INVALID_ADDRESS_MNID_ERROR = "INVALID_ADDRESS_MNID_ERROR";
 
 	public static byte[] calculateHash(String data) {
 		byte[] hash = Hash.sha256(data.getBytes());
@@ -37,6 +36,11 @@ public class Utils {
 		return hashByteToString(hash);
 	}
 
+	public static byte[] getHashInByte(String hexData) {
+		byte[] stringInByte = Numeric.hexStringToByteArray(hexData);
+		return stringInByte;
+	}
+
 	public static byte[] stringToBytes(String string, int lenght) {
 		byte[] byteValue = string.getBytes();
 		byte[] byteValueLen = new byte[lenght];
@@ -44,77 +48,116 @@ public class Utils {
 		return byteValueLen;
 	}
 
+	public static byte[] stringToBytes32Solidity(String string) {
+		byte[] stringInByte = Numeric.hexStringToByteArray(Utils.asciiToHex(string));
+		return stringInByte;
+	}
+
+	public static String bytes32ToString(byte[] param) throws DecoderException, UnsupportedEncodingException {
+		byte[] bytes = Hex
+				.decodeHex(Numeric.toHexString((byte[]) param).substring(2).replaceAll("00", "").toCharArray());
+		return new String(bytes, "UTF-8");
+	}
+
+	public static List<byte[]> arrayStringToListBytes32Solidity(String[] list) {
+		List<byte[]> listBytes = new ArrayList<byte[]>();
+		int index = 0;
+		for (String item : list) {
+			listBytes.add(index, stringToBytes32Solidity(item));
+			index++;
+		}
+		return listBytes;
+	}
+
+	public static ArrayList<String> arrayBytes32ToString(List list)
+			throws UnsupportedEncodingException, DecoderException {
+		ArrayList<String> listString = new ArrayList<String>();
+		for (Object item : list) {
+			byte[] bytes = Hex
+					.decodeHex(Numeric.toHexString((byte[]) item).substring(2).replaceAll("00", "").toCharArray());
+			listString.add(new String(bytes, "UTF-8"));
+		}
+		return listString;
+	}
+
 	public static String sha3String(String data) {
 		return Hash.sha3String(data);
 	}
 
-	public static String encodeMnid(String network, String address, String host)
-			throws ClientProtocolException, IOException {
-		String mnidURL = host; // https://35.243.210.53/api
-		CloseableHttpClient httpClient = getHttpClient();
-		HttpPost postRequest = new HttpPost(mnidURL + "/mnid-encode");
-		String params = new JSONObject().put("network", network).put("address", address).toString();
-		postRequest.setEntity(new StringEntity(params));
-		postRequest.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-		CloseableHttpResponse httpResponse = httpClient.execute(postRequest);
-		String contentString = EntityUtils.toString(httpResponse.getEntity());
-		JSONObject content = new JSONObject(contentString);
-		String mnid = content.getString("mnid");
-		return mnid;
-	}
 
-	public static JSONObject decodeMnid(String mnid, String host) throws ParseException, IOException {
-		String mnidURL = host;
-		CloseableHttpClient httpClient = getHttpClient();
-		HttpGet getRequest = new HttpGet(mnidURL + "/mnid-decode/" + mnid);
-		CloseableHttpResponse httpResponse = httpClient.execute(getRequest);
-		String contentString = EntityUtils.toString(httpResponse.getEntity());
-		JSONObject data = new JSONObject(contentString);
-		return data;
-	}
-
-	public static JSONObject isValidMnid(String mnid, String host) throws ClientProtocolException, IOException {
-		String mnidURL = host;
-		CloseableHttpClient httpClient = getHttpClient();
-		HttpGet getRequest = new HttpGet(mnidURL + "/mnid-validate/" + mnid);
-		CloseableHttpResponse httpResponse = httpClient.execute(getRequest);
-		String contentString = EntityUtils.toString(httpResponse.getEntity());
-		JSONObject data = new JSONObject(contentString);
-		return data;
-	}
-
-	private static CloseableHttpClient getHttpClient() {
-
-		try {
-//			SSLContext sslContext = SSLContext.getInstance("SSL");
-//
-//			sslContext.init(null, new TrustManager[] { new X509TrustManager() {
-//				public X509Certificate[] getAcceptedIssuers() {
-//					return null;
-//				}
-//
-//				public void checkClientTrusted(X509Certificate[] certs, String authType) {
-//				}
-//
-//				public void checkServerTrusted(X509Certificate[] certs, String authType) {
-//				}
-//			} }, new SecureRandom());
-//
-//			SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext,
-//					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-//
-//			CloseableHttpClient httpClient = HttpClientBuilder.create().setSSLSocketFactory(socketFactory).build();
-//
-//			return httpClient;
-
-			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
-			return HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			return HttpClientBuilder.create().build();
+	public static String asciiToHex(String asciiValue) {
+		char[] chars = asciiValue.toCharArray();
+		StringBuffer hex = new StringBuffer();
+		for (int i = 0; i < chars.length; i++) {
+			hex.append(Integer.toHexString((int) chars[i]));
 		}
+		return hex.toString() + String.join("", Collections.nCopies(32 - (hex.length() / 2), "00"));
+	}
+
+	public static String hexToAscii(String hexStr) {
+		StringBuilder output = new StringBuilder("");
+		for (int i = 0; i < hexStr.length(); i += 2) {
+			String str = hexStr.substring(i, i + 2);
+			output.append((char) Integer.parseInt(str, 16));
+		}
+		return output.toString();
+	}
+
+	
+	public static String getHexBlank(String value) {
+		return Strings.isEmpty(value) ? "0x0000000000000000000000000000000000000000000000000000000000000000" : value;
+	}
+	
+
+
+	public static String getRevertReason(String revertReason) {
+		
+		String errorMethodId = "0x08c379a0";
+		String errorsecond =  "008408c379a0";
+	
+		
+		if (revertReason != null ) {
+			revertReason = revertReason.replace(errorMethodId, "");
+			revertReason = revertReason.replace(errorsecond, "");
+			log.info(revertReason);
+			return hexToAscii(revertReason).trim();
+		}
+		
+		
+		return revertReason;
+	}
+
+	public static String getRevertReason(Exception e) {
+		if (e instanceof TransactionException) {
+			TransactionException tx = (TransactionException) e;
+			if ( tx.getTransactionReceipt() != null && tx.getTransactionReceipt().isPresent()) { //NOSONAR
+				return Utils.getRevertReason(tx.getTransactionReceipt().get().getRevertReason());//NOSONAR
+			}
+		}
+		return e != null ? e.getMessage() : "";
+	}
+
+
+	public static byte[] stringToBytes6Solidity(String string) {
+		byte[] stringInByte = Numeric.hexStringToByteArray(asciiToHex6(string));
+		return stringInByte;
+	}
+	
+	private static String asciiToHex32(String asciiValue) {
+		char[] chars = asciiValue.toCharArray();
+		StringBuffer hex = new StringBuffer();
+		for (int i = 0; i < chars.length; i++) {
+			hex.append(Integer.toHexString((int) chars[i]));
+		}
+		return hex.toString() + String.join("", Collections.nCopies(32 - (hex.length() / 2), "00"));
+	}
+	
+	private static String asciiToHex6(String asciiValue) {
+		char[] chars = asciiValue.toCharArray();
+		StringBuffer hex = new StringBuffer();
+		for (int i = 0; i < chars.length; i++) {
+			hex.append(Integer.toHexString((int) chars[i]));
+		}
+		return hex.toString() + String.join("", Collections.nCopies(6 - (hex.length() / 2), "00"));
 	}
 }

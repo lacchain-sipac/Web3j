@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.16;
 
 contract ClaimAttester {
   event ClaimAttested(bytes32 indexed sourceClaimHash, bytes32 indexed targetClaimHash, address attester, uint256 date, uint256 expDate);
@@ -14,14 +14,14 @@ contract ClaimAttester {
   // subjectHash  => claimHash => attester => Attestation
   mapping (bytes32 => mapping (bytes32 => mapping (address => Attestation))) attestations;
 
-  function attestClaim(bytes32 subjectHash, bytes32 claimHash, address attester, uint validDays) {
+  function attestClaim(bytes32 subjectHash, bytes32 claimHash, address attester, uint validDays) public {
     uint exp = validDays > 0 ? now + validDays * 1 days : 0;
     attestations[subjectHash][claimHash][attester] = Attestation(now, exp);
-    ClaimAttested(subjectHash, claimHash, attester, now, exp);
+    emit ClaimAttested(subjectHash, claimHash, attester, now, exp);
   }
 
-  function revokeClaim(bytes32 subjectHash, bytes32 claimHash, address attester) {
+  function revokeClaim(bytes32 subjectHash, bytes32 claimHash, address attester) public {
     attestations[subjectHash][claimHash][attester] = Attestation(0, now);
-    ClaimRevoked(subjectHash, claimHash, attester, now);
+    emit ClaimRevoked(subjectHash, claimHash, attester, now);
   }
 }

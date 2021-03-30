@@ -12,26 +12,24 @@ import org.web3j.tuples.generated.Tuple2;
 
 import com.everis.blockchain.honduras.IVerificationRegistry;
 import com.everis.blockchain.honduras.contract.VerificationRegistry;
-import com.everis.blockchain.honduras.http.EthCore;
-import com.everis.blockchain.honduras.http.EthCoreParams;
+import com.everis.blockchain.honduras.util.EthCore;
+import com.everis.blockchain.honduras.util.EthCoreParams;
 import com.everis.blockchain.honduras.util.Utils;
 
 import io.reactivex.annotations.Nullable;
 
 public class VerificationregistryImpl implements IVerificationRegistry {
 
-    public String addressVR;
+	private String addressVR;
     private EthCore ethCore;
     private VerificationRegistry vrContract;
     private static final Logger log = LoggerFactory.getLogger(VerificationregistryImpl.class);
 
-    public VerificationregistryImpl(@Nullable String verificationRegistry, EthCoreParams ethCoreParams, boolean isSSL) {
-        ethCore = new EthCore(ethCoreParams, isSSL);
-        try {
+    public VerificationregistryImpl(@Nullable String verificationRegistry, EthCoreParams ethCoreParams) throws IOException, Exception {
+        ethCore = new EthCore(ethCoreParams);
+      
             addressVR = verificationRegistry == null ? deployVR() : verificationRegistry;
-        } catch (Exception e) {
-            log.error("Error.VerificationregistryImpl", e);
-        }
+       
         updateVRContract();
     }
 
